@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Simulation Trainer</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom CSS for the 3D flip effect and general layout */
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --card-bg: #1f2937;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+
+        /* 3D Container for the Flip Card */
+        .flip-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .flipper {
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Flip state when 'flipped' class is added */
+        .flip-container.flipped .flipper {
+            transform: rotateY(180deg);
+        }
+
+        /* Front and Back faces of the card */
+        .front, .back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .front {
+            z-index: 2;
+            transform: rotateY(0deg);
+        }
+
+        .back {
+            transform: rotateY(180deg);
+        }
+
+        /* Email Header Styling */
+        .email-header {
+            background: #1e293b;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #334155;
+        }
+
+        /* Email Content Styling */
+        .email-content {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: #0f172a;
+        }
+
+        /* Scrollbar styling for a nicer look */
+        .email-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .email-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .email-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Progress bar styling */
+        .progress-bar {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #6366f1);
+            transition: width 0.5s ease;
+        }
+
+        /* Tooltip styling */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1e293b;
+            color: #f1f5f9;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Animation for stats */
+        @keyframes countUp {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .count-up {
+            animation: countUp 0.5s ease-out;
+        }
+
+        /* Badge styling */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Scenario difficulty indicators */
+        .difficulty-easy {
+            border-left: 4px solid #10b981;
+        }
+
+        .difficulty-medium {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .difficulty-hard {
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Hover effects for buttons */
+        .btn-hover {
+            transition: all 0.2s ease;
+            transform: translateY(0);
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        
+        <!-- Header & Navigation -->
+        <header class="mb-8 p-4 bg-gray-800 rounded-xl shadow-2xl flex justify-between items-center flex-wrap">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mr-3">
+                    <i class="fas fa-shield-alt text-white"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight">Security Training Hub</h1>
+            </div>
+            <div class="space-x-4 mt-2 sm:mt-0 flex flex-wrap gap-2">
+                <button onclick="showView('dashboard')" 
+                        id="nav-dashboard"
+                        class="px-4 py-2 rounded-lg font-medium transition duration-150 text-white bg-indigo-600 hover:bg-indigo-700 btn-hover">
+                    <i class="fas fa-chart-line mr-2"></i>Trainer Dashboard
+                </button>
+                <button onclick="showView('scenario')" 
+                        id="nav-scenario"
+                        class="px-4 py-2 rounded-lg font-medium transition duration-150 text-indigo-300 hover:bg-indigo-700 hover:text-white btn-hover">
+                    <i class="fas fa-play-circle mr-2"></i>Start Scenario
+                </button>
+                <button onclick="showView('scenario-library')" 
+                        id="nav-library"
+                        class="px-4 py-2 rounded-lg font-medium transition duration-150 text-indigo-300 hover:bg-indigo-700 hover:text-white btn-hover">
+                    <i class="fas fa-book-open mr-2"></i>Scenario Library
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <main>
+            
+            <!-- 1. DASHBOARD VIEW -->
+            <div id="dashboard-view" class="view">
+                <h2 class="text-2xl font-bold text-gray-100 mb-6 border-b border-indigo-500 pb-2">Training Performance Overview</h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Stat Card 1: Total Users -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-400 text-sm font-medium">Total Users Trained</p>
+                                <p id="stat-total" class="text-3xl font-bold text-white mt-1">0</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                <i class="fas fa-users text-indigo-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Progress</span>
+                                <span id="total-progress">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="total-progress-bar" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stat Card 2: Clicks (Failure) -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-red-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-400 text-sm font-medium">Phishing Clicks</p>
+                                <p id="stat-clicks" class="text-3xl font-bold text-red-400 mt-1">0</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-red-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Failure Rate</span>
+                                <span id="click-rate">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="click-progress-bar" class="progress-fill bg-red-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stat Card 3: Ignores (Success) -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-400 text-sm font-medium">Emails Ignored</p>
+                                <p id="stat-ignores" class="text-3xl font-bold text-green-400 mt-1">0</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Success Rate</span>
+                                <span id="ignore-rate">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="ignore-progress-bar" class="progress-fill bg-green-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stat Card 4: Success Rate -->
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-400 text-sm font-medium">Overall Success Rate</p>
+                                <p id="stat-rate" class="text-3xl font-bold text-white mt-1">0%</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                <i class="fas fa-trophy text-indigo-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div id="performance-text" class="text-sm text-gray-300">No data yet</div>
+                            <div class="flex items-center mt-2">
+                                <div id="performance-icon" class="mr-2"></div>
+                                <div id="performance-message" class="text-xs text-gray-400"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table (Simulated) -->
+                <div class="bg-gray-800 rounded-xl p-6 shadow-xl mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-200">User Action Log (Simulated)</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="exportData()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">
+                                <i class="fas fa-download mr-1"></i>Export Data
+                            </button>
+                            <button onclick="showResetModal()" class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
+                                <i class="fas fa-trash-alt mr-1"></i>Reset Data
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead>
+                                <tr class="text-left text-gray-400 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-3">User ID</th>
+                                    <th class="px-6 py-3">Scenario Type</th>
+                                    <th class="px-6 py-3">Difficulty</th>
+                                    <th class="px-6 py-3">Outcome</th>
+                                    <th class="px-6 py-3">Date/Time</th>
+                                    <th class="px-6 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-body" class="divide-y divide-gray-700 text-sm text-gray-300">
+                                <!-- Log entries will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tips Section -->
+                <div class="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-500/30">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-4 flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-400 mr-2"></i> Security Awareness Tips
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-800/50 p-4 rounded-lg">
+                            <h4 class="text-indigo-400 font-medium mb-2"><i class="fas fa-envelope mr-2"></i>Check Email Headers</h4>
+                            <p class="text-gray-300 text-sm">Always verify the sender's email address, not just the display name. Look for subtle misspellings or unusual domains.</p>
+                        </div>
+                        <div class="bg-gray-800/50 p-4 rounded-lg">
+                            <h4 class="text-indigo-400 font-medium mb-2"><i class="fas fa-link mr-2"></i>Hover Before Clicking</h4>
+                            <p class="text-gray-300 text-sm">Hover over links to see the actual URL before clicking. Be suspicious of URLs that don't match the claimed destination.</p>
+                        </div>
+                        <div class="bg-gray-800/50 p-4 rounded-lg">
+                            <h4 class="text-indigo-400 font-medium mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Beware of Urgency</h4>
+                            <p class="text-gray-300 text-sm">Phishing emails often create a false sense of urgency. Legitimate organizations rarely demand immediate action.</p>
+                        </div>
+                        <div class="bg-gray-800/50 p-4 rounded-lg">
+                            <h4 class="text-indigo-400 font-medium mb-2"><i class="fas fa-shield-alt mr-2"></i>Verify Through Official Channels</h4>
+                            <p class="text-gray-300 text-sm">If unsure, contact the organization directly using official contact information, not the details in the suspicious email.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. SCENARIO VIEW (The Phishing Email Simulator) -->
+            <div id="scenario-view" class="view hidden">
+                <h2 class="text-2xl font-bold text-gray-100 mb-6 border-b border-indigo-500 pb-2">Phishing Simulation Scenario</h2>
+
+                <div class="mb-6 flex flex-wrap gap-4">
+                    <div class="bg-gray-800 rounded-lg p-4 flex-1 min-w-[200px]">
+                        <p class="text-gray-400 text-sm">Current Scenario</p>
+                        <p id="current-scenario-name" class="text-white font-medium">Urgent HR Policy Update</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-1 min-w-[200px]">
+                        <p class="text-gray-400 text-sm">Difficulty</p>
+                        <p id="current-scenario-difficulty" class="text-white font-medium"><span class="badge badge-danger">Hard</span></p>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-1 min-w-[200px]">
+                        <p class="text-gray-400 text-sm">Type</p>
+                        <p id="current-scenario-type" class="text-white font-medium">Spear Phishing</p>
+                    </div>
+                </div>
+
+                <div class="flip-container h-[550px] lg:h-[600px]" id="email-flip-container">
+                    <div class="flipper">
+                        
+                        <!-- FRONT: The Fake Email UI (Scenario) -->
+                        <div class="front bg-gray-900 text-gray-200">
+                            <div class="email-header">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-white">Urgent HR Policy Update</h3>
+                                        <div class="flex items-center mt-1">
+                                            <span class="text-xs bg-red-500 text-white px-2 py-1 rounded mr-2">Suspicious</span>
+                                            <span class="text-xs text-gray-400"><i class="far fa-clock mr-1"></i>Just now</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-gray-400">
+                                        <button class="p-1 hover:bg-gray-700 rounded">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                        <button class="p-1 hover:bg-gray-700 rounded ml-1">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Email Body -->
+                            <div class="email-content">
+                                <div class="border-b border-gray-700 pb-3 mb-4 space-y-1">
+                                    <p class="text-sm"><strong>From:</strong> HR Department &lt;<span class="text-red-400">hr-support@company-portal.net</span>&gt;</p>
+                                    <p class="text-sm"><strong>To:</strong> John.Doe@yourcompany.com</p>
+                                    <p class="text-sm"><strong>Subject:</strong> Immediate Action Required: Suspension of Benefits Access</p>
+                                </div>
+
+                                <div class="text-gray-300 leading-relaxed space-y-4">
+                                    <p>Dear John,</p>
+                                    <p>Our records indicate an inconsistency in your last submitted vacation accrual report. Due to a system upgrade on our legacy server, all employee benefits accounts are temporarily suspended until re-verification is complete.</p>
+                                    <p>Failure to click the link below and re-validate your credentials within the next 2 hours will result in a permanent block to your healthcare and 401k portal, as per the new Q4 Security Mandate.</p>
+                                    <p>Thank you for your prompt attention to this urgent matter.</p>
+                                    
+                                    <div class="bg-yellow-900/30 border-l-4 border-yellow-500 p-4 my-4">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm text-yellow-200">
+                                                    <strong>Security Notice:</strong> This email requests sensitive information. Always verify the sender's identity before proceeding.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <p class="text-center pt-4">
+                                        <!-- THE PHISHING LINK BUTTON -->
+                                        <button onclick="simulatePhishingClick()" 
+                                                class="px-8 py-3 bg-red-600 text-white font-bold rounded-lg transition duration-200 hover:bg-red-700 transform hover:scale-105 shadow-lg btn-hover relative tooltip">
+                                            <i class="fas fa-external-link-alt mr-2"></i>Click Here to Validate Your Benefits Credentials
+                                            <span class="tooltip-text">This link points to: http://company-portal.net/validate-credentials (Not our company domain!)</span>
+                                        </button>
+                                    </p>
+
+                                    <div class="mt-8 pt-4 border-t border-gray-700">
+                                        <p class="text-sm text-gray-500">
+                                            <i class="fas fa-lock mr-1"></i>This message was sent securely. However, always verify the sender's identity before clicking links or providing information.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BACK: The Educational Feedback (Flip) -->
+                        <div class="back bg-gray-900 text-gray-200 p-6 flex flex-col justify-between">
+                            <div>
+                                <h3 id="feedback-title" class="text-2xl font-bold mb-4 text-white"></h3>
+                                <p id="feedback-message" class="text-gray-300 mb-6 leading-relaxed"></p>
+                                
+                                <h4 class="text-xl font-semibold text-indigo-400 mb-3 flex items-center">
+                                    <i class="fas fa-flag mr-2"></i>Key Red Flags to Look For:
+                                </h4>
+                                <ul class="list-none space-y-3 text-gray-300" id="feedback-details">
+                                    <!-- Details inserted here by JS -->
+                                </ul>
+                            </div>
+
+                            <div class="mt-6">
+                                <div class="flex justify-between">
+                                    <button onclick="resetScenario()" 
+                                            class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition btn-hover">
+                                        <i class="fas fa-arrow-left mr-2"></i>Return to Dashboard
+                                    </button>
+                                    <button onclick="nextScenario()" 
+                                            class="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition btn-hover">
+                                        Next Scenario<i class="fas fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <div class="mt-8 p-4 bg-gray-800 rounded-xl flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <p class="text-gray-300 font-semibold text-center">If you recognized this as a phishing attempt:</p>
+                    <button onclick="simulateIgnore()" 
+                            class="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-200 shadow-md btn-hover">
+                        <i class="fas fa-check-circle mr-2"></i>Mark as Safe / Ignore
+                    </button>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button onclick="showHint()" class="text-indigo-400 hover:text-indigo-300 text-sm">
+                        <i class="fas fa-question-circle mr-1"></i>Need a hint? Click here for help identifying phishing signs
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. SCENARIO LIBRARY VIEW -->
+            <div id="scenario-library-view" class="view hidden">
+                <h2 class="text-2xl font-bold text-gray-100 mb-6 border-b border-indigo-500 pb-2">Phishing Scenario Library</h2>
+                
+                <div class="mb-6">
+                    <p class="text-gray-300 mb-4">Select a scenario to practice identifying different types of phishing attacks:</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Scenario 1 -->
+                        <div class="bg-gray-800 rounded-xl p-5 difficulty-hard hover:bg-gray-700/50 transition cursor-pointer" onclick="loadScenario(0)">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="text-lg font-bold text-white">Urgent HR Policy Update</h3>
+                                <span class="badge badge-danger">Hard</span>
+                            </div>
+                            <p class="text-gray-300 text-sm mb-4">A sophisticated spear phishing attempt targeting employees with urgent HR policy updates.</p>
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span><i class="fas fa-tag mr-1"></i>Spear Phishing</span>
+                                <span><i class="far fa-clock mr-1"></i>5 min</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Scenario 2 -->
+                        <div class="bg-gray-800 rounded-xl p-5 difficulty-medium hover:bg-gray-700/50 transition cursor-pointer" onclick="loadScenario(1)">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="text-lg font-bold text-white">IT Security Alert</h3>
+                                <span class="badge" style="background-color: rgba(245, 158, 11, 0.2); color: #f59e0b;">Medium</span>
+                            </div>
+                            <p class="text-gray-300 text-sm mb-4">An email pretending to be from IT security asking you to reset your password immediately.</p>
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span><i class="fas fa-tag mr-1"></i>Credential Harvesting</span>
+                                <span><i class="far fa-clock mr-1"></i>3 min</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Scenario 3 -->
+                        <div class="bg-gray-800 rounded-xl p-5 difficulty-easy hover:bg-gray-700/50 transition cursor-pointer" onclick="loadScenario(2)">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="text-lg font-bold text-white">Package Delivery Notification</h3>
+                                <span class="badge badge-success">Easy</span>
+                            </div>
+                            <p class="text-gray-300 text-sm mb-4">A fake delivery notification asking you to click a link to track your package.</p>
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span><i class="fas fa-tag mr-1"></i>General Phishing</span>
+                                <span><i class="far fa-clock mr-1"></i>2 min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="reset-modal" class="modal">
+        <div class="modal-content">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-white mb-2">Reset Training Data</h3>
+                <p class="text-gray-300 mb-6">Are you sure you want to delete all training data? This action cannot be undone.</p>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="hideResetModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                        Cancel
+                    </button>
+                    <button onclick="resetData()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                        Yes, Reset Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hint Modal -->
+    <div id="hint-modal" class="modal">
+        <div class="modal-content">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-white">Phishing Identification Hints</h3>
+                    <button onclick="hideHintModal()" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4 text-gray-300">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 h-5 w-5 text-indigo-400 mt-0.5">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-white">Check the sender's email address</p>
+                            <p class="text-sm">The domain "company-portal.net" is not our company's official domain.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 h-5 w-5 text-indigo-400 mt-0.5">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-white">Urgency and threats</p>
+                            <p class="text-sm">Legitimate HR communications don't threaten permanent loss of benefits with a 2-hour deadline.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 h-5 w-5 text-indigo-400 mt-0.5">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-white">Suspicious link</p>
+                            <p class="text-sm">Hover over the button to see it doesn't point to our company's website.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 h-5 w-5 text-indigo-400 mt-0.5">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-white">Vague reference</p>
+                            <p class="text-sm">The "inconsistency in your last submitted vacation accrual report" is intentionally vague to create concern.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-center">
+                    <button onclick="hideHintModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        Got it, thanks!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURE (SIMULATED) ---
+        // In a real application, this data would be stored securely in a database like Firestore
+        // to persist results across sessions and users.
+        let trainingData = {
+            totalUsers: 0,
+            clicks: 0,
+            ignores: 0,
+            log: [],
+        };
+
+        // Scenario library
+        const SCENARIOS = [
+            {
+                id: 0,
+                name: "Urgent HR Policy Update",
+                type: "Spear Phishing",
+                difficulty: "Hard",
+                title_fail: "❌ TRAINING FAILED: You Clicked the Phishing Link!",
+                title_success: "✅ TRAINING PASSED: You Ignored the Phishing Link!",
+                message_fail: "This email used a high-pressure tactic, claiming 'Immediate Action Required' and threatening 'permanent block to your healthcare and 401k portal.' Attackers often use fear and urgency to bypass critical thinking.",
+                details: [
+                    "Sender Domain is Suspicious: The email came from `company-portal.net` instead of the official `yourcompany.com` domain. Always check the full domain name.",
+                    "Threatening Language: Legitimate HR/IT systems rarely threaten immediate, permanent loss of benefits without prior communication.",
+                    "Link Destination: Hovering over the link (in a real email client) would show a non-company URL, which is the clearest sign of a malicious link.",
+                    "Vague Topic: The 'inconsistency in your last submitted vacation accrual report' is designed to be just specific enough to worry you, but too vague to verify quickly."
+                ]
+            },
+            {
+                id: 1,
+                name: "IT Security Alert",
+                type: "Credential Harvesting",
+                difficulty: "Medium",
+                title_fail: "❌ TRAINING FAILED: You Clicked the Phishing Link!",
+                title_success: "✅ TRAINING PASSED: You Ignored the Phishing Link!",
+                message_fail: "This email impersonated your IT department to trick you into resetting your password on a fake login page. This is a common tactic to steal credentials.",
+                details: [
+                    "Generic Greeting: The email uses a generic greeting instead of addressing you by name.",
+                    "Urgent Language: The email creates a false sense of urgency to prompt immediate action.",
+                    "Suspicious Link: The 'Reset Password' button leads to a non-company website.",
+                    "Unusual Sender: The email comes from an external domain not associated with your organization."
+                ]
+            },
+            {
+                id: 2,
+                name: "Package Delivery Notification",
+                type: "General Phishing",
+                difficulty: "Easy",
+                title_fail: "❌ TRAINING FAILED: You Clicked the Phishing Link!",
+                title_success: "✅ TRAINING PASSED: You Ignored the Phishing Link!",
+                message_fail: "This fake delivery notification tried to trick you into clicking a malicious link by creating curiosity about a package you weren't expecting.",
+                details: [
+                    "No Tracking Number: Legitimate delivery notifications always include a tracking number.",
+                    "Generic Content: The email doesn't specify which delivery company it's from.",
+                    "Suspicious Link: The link uses a URL shortener or unrelated domain.",
+                    "Unexpected Email: You weren't expecting any package deliveries."
+                ]
+            }
+        ];
+
+        let currentScenarioIndex = 0;
+
+        // --- DOM ELEMENTS & STATE ---
+        const flipContainer = document.getElementById('email-flip-container');
+        const dashboardView = document.getElementById('dashboard-view');
+        const scenarioView = document.getElementById('scenario-view');
+        const libraryView = document.getElementById('scenario-library-view');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const feedbackDetails = document.getElementById('feedback-details');
+        const logBody = document.getElementById('log-body');
+        const resetModal = document.getElementById('reset-modal');
+        const hintModal = document.getElementById('hint-modal');
+        const currentScenarioName = document.getElementById('current-scenario-name');
+        const currentScenarioDifficulty = document.getElementById('current-scenario-difficulty');
+        const currentScenarioType = document.getElementById('current-scenario-type');
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load data from localStorage for persistence (for this demo only)
+            const savedData = localStorage.getItem('phishingTrainingData');
+            if (savedData) {
+                trainingData = JSON.parse(savedData);
+            }
+            updateDashboard();
+            showView('dashboard');
+        });
+
+        function saveTrainingData() {
+            localStorage.setItem('phishingTrainingData', JSON.stringify(trainingData));
+        }
+
+        // --- VIEW MANAGEMENT ---
+        function showView(viewName) {
+            dashboardView.classList.add('hidden');
+            scenarioView.classList.add('hidden');
+            libraryView.classList.add('hidden');
+            
+            // Update button styles
+            document.getElementById('nav-dashboard').classList.remove('bg-indigo-600', 'text-white');
+            document.getElementById('nav-scenario').classList.remove('bg-indigo-600', 'text-white');
+            document.getElementById('nav-library').classList.remove('bg-indigo-600', 'text-white');
+            
+            document.getElementById('nav-dashboard').classList.add('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+            document.getElementById('nav-scenario').classList.add('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+            document.getElementById('nav-library').classList.add('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+
+            if (viewName === 'dashboard') {
+                dashboardView.classList.remove('hidden');
+                document.getElementById('nav-dashboard').classList.add('bg-indigo-600', 'text-white');
+                document.getElementById('nav-dashboard').classList.remove('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+            } else if (viewName === 'scenario') {
+                scenarioView.classList.remove('hidden');
+                document.getElementById('nav-scenario').classList.add('bg-indigo-600', 'text-white');
+                document.getElementById('nav-scenario').classList.remove('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+            } else if (viewName === 'scenario-library') {
+                libraryView.classList.remove('hidden');
+                document.getElementById('nav-library').classList.add('bg-indigo-600', 'text-white');
+                document.getElementById('nav-library').classList.remove('text-indigo-300', 'hover:bg-indigo-700', 'hover:text-white');
+            }
+            // Ensure card is not flipped when switching to scenario view
+            flipContainer.classList.remove('flipped');
+        }
+
+        // --- CORE FUNCTIONALITY ---
+
+        function simulatePhishingClick() {
+            // 1. Update Metrics
+            trainingData.totalUsers++;
+            trainingData.clicks++;
+
+            // 2. Log Action
+            logAction('Clicked', 'Failure', SCENARIOS[currentScenarioIndex].type, SCENARIOS[currentScenarioIndex].difficulty);
+
+            // 3. Show Educational Feedback (The Flip!)
+            showFeedback(false);
+
+            saveTrainingData();
+            updateDashboard();
+        }
+
+        function simulateIgnore() {
+            // 1. Update Metrics
+            trainingData.totalUsers++;
+            trainingData.ignores++;
+            
+            // 2. Log Action
+            logAction('Ignored', 'Success', SCENARIOS[currentScenarioIndex].type, SCENARIOS[currentScenarioIndex].difficulty);
+
+            // 3. Show Educational Feedback (The Flip!)
+            showFeedback(true);
+
+            saveTrainingData();
+            updateDashboard();
+        }
+        
+        // --- FEEDBACK & FLIP MECHANISM ---
+        function showFeedback(isSuccess) {
+            // Set content for the back of the card
+            if (isSuccess) {
+                feedbackTitle.textContent = SCENARIOS[currentScenarioIndex].title_success;
+                feedbackTitle.classList.remove('text-red-400');
+                feedbackTitle.classList.add('text-green-400');
+            } else {
+                feedbackTitle.textContent = SCENARIOS[currentScenarioIndex].title_fail;
+                feedbackTitle.classList.remove('text-green-400');
+                feedbackTitle.classList.add('text-red-400');
+            }
+
+            feedbackMessage.textContent = SCENARIOS[currentScenarioIndex].message_fail;
+            
+            // Populate Red Flags
+            feedbackDetails.innerHTML = SCENARIOS[currentScenarioIndex].details.map(detail => 
+                `<li class="flex items-start">
+                    <i class="fas fa-exclamation-circle text-yellow-400 mt-1 mr-3 flex-shrink-0"></i>
+                    <span>${detail}</span>
+                </li>`
+            ).join('');
+
+            // Trigger the 3D flip animation!
+            flipContainer.classList.add('flipped');
+        }
+
+        function resetScenario() {
+            // Flip the card back to the front (Email view)
+            flipContainer.classList.remove('flipped');
+            // Move back to dashboard
+            showView('dashboard');
+        }
+
+        function nextScenario() {
+            // Flip the card back to the front (Email view)
+            flipContainer.classList.remove('flipped');
+            // Load next scenario
+            currentScenarioIndex = (currentScenarioIndex + 1) % SCENARIOS.length;
+            loadScenario(currentScenarioIndex);
+        }
+
+        function loadScenario(index) {
+            currentScenarioIndex = index;
+            const scenario = SCENARIOS[index];
+            
+            currentScenarioName.textContent = scenario.name;
+            currentScenarioType.textContent = scenario.type;
+            
+            // Update difficulty badge
+            let badgeClass, badgeText;
+            if (scenario.difficulty === 'Easy') {
+                badgeClass = 'badge-success';
+                badgeText = 'Easy';
+            } else if (scenario.difficulty === 'Medium') {
+                badgeClass = '';
+                badgeText = 'Medium';
+                currentScenarioDifficulty.innerHTML = `<span class="badge" style="background-color: rgba(245, 158, 11, 0.2); color: #f59e0b;">${badgeText}</span>`;
+            } else {
+                badgeClass = 'badge-danger';
+                badgeText = 'Hard';
+                currentScenarioDifficulty.innerHTML = `<span class="badge ${badgeClass}">${badgeText}</span>`;
+            }
+            
+            showView('scenario');
+        }
+        
+        function logAction(outcome, result, scenarioType, difficulty) {
+            const userId = crypto.randomUUID().substring(0, 8); // Fake ID for demo
+            const timestamp = new Date().toLocaleString();
+
+            trainingData.log.unshift({
+                id: userId,
+                scenario: scenarioType,
+                difficulty: difficulty,
+                outcome: outcome,
+                result: result,
+                time: timestamp
+            });
+            // Keep log size manageable
+            if (trainingData.log.length > 20) {
+                trainingData.log.pop();
+            }
+        }
+
+        // --- DASHBOARD UPDATES ---
+
+        function updateDashboard() {
+            const total = trainingData.totalUsers;
+            const clicks = trainingData.clicks;
+            const ignores = trainingData.ignores;
+            const successRate = total > 0 ? ((ignores / total) * 100).toFixed(1) : 0;
+            const clickRate = total > 0 ? ((clicks / total) * 100).toFixed(1) : 0;
+
+            // Update stats with animation
+            updateStatWithAnimation('stat-total', total);
+            updateStatWithAnimation('stat-clicks', clicks);
+            updateStatWithAnimation('stat-ignores', ignores);
+            updateStatWithAnimation('stat-rate', `${successRate}%`);
+
+            // Update progress bars
+            document.getElementById('total-progress').textContent = `${total > 0 ? 100 : 0}%`;
+            document.getElementById('total-progress-bar').style.width = `${total > 0 ? 100 : 0}%`;
+            
+            document.getElementById('click-rate').textContent = `${clickRate}%`;
+            document.getElementById('click-progress-bar').style.width = `${clickRate}%`;
+            
+            document.getElementById('ignore-rate').textContent = `${successRate}%`;
+            document.getElementById('ignore-progress-bar').style.width = `${successRate}%`;
+
+            // Update performance message
+            const performanceText = document.getElementById('performance-text');
+            const performanceIcon = document.getElementById('performance-icon');
+            const performanceMessage = document.getElementById('performance-message');
+            
+            if (total === 0) {
+                performanceText.textContent = "No data yet";
+                performanceIcon.innerHTML = '<i class="fas fa-minus text-gray-400"></i>';
+                performanceMessage.textContent = "Complete a scenario to see your performance";
+            } else if (successRate >= 80) {
+                performanceText.textContent = "Excellent!";
+                performanceIcon.innerHTML = '<i class="fas fa-trophy text-yellow-400"></i>';
+                performanceMessage.textContent = "You're doing great at identifying phishing attempts";
+            } else if (successRate >= 60) {
+                performanceText.textContent = "Good";
+                performanceIcon.innerHTML = '<i class="fas fa-thumbs-up text-green-400"></i>';
+                performanceMessage.textContent = "You're improving your phishing detection skills";
+            } else {
+                performanceText.textContent = "Needs Improvement";
+                performanceIcon.innerHTML = '<i class="fas fa-exclamation-triangle text-red-400"></i>';
+                performanceMessage.textContent = "Review the training materials and try again";
+            }
+
+            // Update Log Table
+            logBody.innerHTML = '';
+            trainingData.log.forEach(entry => {
+                const row = document.createElement('tr');
+                const outcomeClass = entry.result === 'Success' ? 'text-green-400' : 'text-red-400';
+                let badgeClass, badgeText;
+                
+                if (entry.difficulty === 'Easy') {
+                    badgeClass = 'badge-success';
+                    badgeText = 'Easy';
+                } else if (entry.difficulty === 'Medium') {
+                    badgeClass = '';
+                    badgeText = 'Medium';
+                } else {
+                    badgeClass = 'badge-danger';
+                    badgeText = 'Hard';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-3">${entry.id}</td>
+                    <td class="px-6 py-3">${entry.scenario}</td>
+                    <td class="px-6 py-3">
+                        ${badgeClass ? `<span class="badge ${badgeClass}">${badgeText}</span>` : 
+                          `<span class="badge" style="background-color: rgba(245, 158, 11, 0.2); color: #f59e0b;">${badgeText}</span>`}
+                    </td>
+                    <td class="px-6 py-3 ${outcomeClass}">${entry.outcome}</td>
+                    <td class="px-6 py-3">${entry.time}</td>
+                    <td class="px-6 py-3">
+                        <button onclick="viewLogDetails('${entry.id}')" class="text-indigo-400 hover:text-indigo-300">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                logBody.appendChild(row);
+            });
+        }
+
+        function updateStatWithAnimation(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            element.textContent = newValue;
+            element.classList.add('count-up');
+            setTimeout(() => {
+                element.classList.remove('count-up');
+            }, 500);
+        }
+        
+        function showResetModal() {
+            resetModal.style.display = 'flex';
+        }
+        
+        function hideResetModal() {
+            resetModal.style.display = 'none';
+        }
+        
+        function showHint() {
+            hintModal.style.display = 'flex';
+        }
+        
+        function hideHintModal() {
+            hintModal.style.display = 'none';
+        }
+        
+        function resetData() {
+            trainingData = {
+                totalUsers: 0,
+                clicks: 0,
+                ignores: 0,
+                log: [],
+            };
+            localStorage.removeItem('phishingTrainingData');
+            updateDashboard();
+            hideResetModal();
+            showView('dashboard');
+        }
+
+        function exportData() {
+            // In a real application, this would generate a CSV or PDF report
+            alert("In a real application, this would export your training data as a CSV file.");
+        }
+
+        function viewLogDetails(logId) {
+            // In a real application, this would show detailed information about a specific log entry
+            alert(`In a real application, this would show detailed information for log entry: ${logId}`);
+        }
+    </script>
+</body>
+</html>
