@@ -7,14 +7,18 @@ This project helps organizations and learners test phishing resilience, raise aw
 
 ## 🚀 Features
 
+
 - 📧 **Phishing Email Simulation:** Sends realistic mock phishing emails (for awareness testing only)
 - 🎯 **User Action Tracking:** Monitors clicks, opens, and responses to measure awareness
 - 🔐 **Interactive Feedback System:** Notifies users if they clicked a fake link and provides educational guidance
 - 🧠 **Phishing Types Included:**
+
   - Spear Phishing (Targeted)
   - Whaling (Executive-level)
   - Generic Phishing Templates
+
 - 💻 **Built With:**
+
   - HTML, CSS, and JavaScript (Frontend)
   - Node.js  (Backend) 
   - SQLite  
